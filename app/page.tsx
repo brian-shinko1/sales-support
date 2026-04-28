@@ -62,6 +62,7 @@ export default function Home() {
       <header className="border-b border-zinc-800 px-6 py-3 flex items-center gap-3">
         <span className="text-lg font-semibold tracking-tight">Sales Support</span>
         <span className="text-zinc-600 text-sm">transcribe · edit · summarize</span>
+        <a href="/api/auth/logout" className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Sign out</a>
       </header>
 
       {/* Main layout */}
