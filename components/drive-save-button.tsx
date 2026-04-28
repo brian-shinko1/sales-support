@@ -16,10 +16,25 @@ function mdToHtml(md: string): string {
   const html: string[] = [];
   let inUl = false;
   let inOl = false;
+  let inTable = false;
+  let tableHeaderDone = false;
+  let inTbody = false;
+
+  const isTableRow = (l: string) => l.trimEnd().startsWith("|") && l.trimEnd().endsWith("|");
+  const isSeparatorRow = (l: string) => /^\|[\s|:-]+\|$/.test(l.trimEnd());
 
   const closeList = () => {
     if (inUl) { html.push("</ul>"); inUl = false; }
     if (inOl) { html.push("</ol>"); inOl = false; }
+  };
+
+  const closeTable = () => {
+    if (inTable) {
+      if (inTbody) { html.push("</tbody>"); inTbody = false; }
+      html.push("</table>");
+      inTable = false;
+      tableHeaderDone = false;
+    }
   };
 
   const inline = (s: string) =>
@@ -28,8 +43,44 @@ function mdToHtml(md: string): string {
       .replace(/\*(.+?)\*/g, "<em>$1</em>")
       .replace(/`(.+?)`/g, "<code>$1</code>");
 
+  const parseTableCells = (line: string) =>
+    line.trimEnd().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+
   for (const raw of lines) {
     const line = raw.trimEnd();
+
+    if (isTableRow(line)) {
+      if (isSeparatorRow(line)) {
+        // separator row — marks end of header
+        tableHeaderDone = true;
+        continue;
+      }
+      const cells = parseTableCells(line);
+      if (!inTable) {
+        closeList();
+        html.push(`<table style="border-collapse:collapse;width:100%;margin:1em 0"><thead><tr>`);
+        cells.forEach(c => html.push(`<th style="border:1px solid #ccc;padding:6px 12px;background:#f0f0f0;text-align:left">${inline(c)}</th>`));
+        html.push(`</tr></thead>`);
+        inTable = true;
+        tableHeaderDone = false;
+      } else {
+        if (!tableHeaderDone) {
+          // still in header area before separator
+          html.push(`<tr>`);
+          cells.forEach(c => html.push(`<th style="border:1px solid #ccc;padding:6px 12px;background:#f0f0f0;text-align:left">${inline(c)}</th>`));
+          html.push(`</tr>`);
+        } else {
+            if (!inTbody) { html.push(`<tbody>`); inTbody = true; }
+          html.push(`<tr>`);
+          cells.forEach(c => html.push(`<td style="border:1px solid #ccc;padding:6px 12px">${inline(c)}</td>`));
+          html.push(`</tr>`);
+        }
+      }
+      continue;
+    }
+
+    closeTable();
+
     const h3 = line.match(/^### (.+)/);
     const h2 = line.match(/^## (.+)/);
     const h1 = line.match(/^# (.+)/);
@@ -56,6 +107,7 @@ function mdToHtml(md: string): string {
     }
   }
   closeList();
+  closeTable();
   return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:800px;margin:40px auto;line-height:1.6">${html.join("")}</body></html>`;
 }
 
