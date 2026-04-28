@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=no_code", req.url));
   }
 
-  const base = process.env.NEXT_PUBLIC_APP_URL!;
+  const base = new URL(req.url).origin;
 
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",

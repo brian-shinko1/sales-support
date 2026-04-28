@@ -3,7 +3,7 @@ export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 
 export function GET(req: NextRequest) {
-  const base = process.env.NEXT_PUBLIC_APP_URL!;
+  const base = new URL(req.url).origin;
   const params = new URLSearchParams({
     client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
     redirect_uri: `${base}/api/auth/callback`,
