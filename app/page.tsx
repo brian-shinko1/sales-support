@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import Image from "next/image";
 import { UploadPanel } from "@/components/upload-panel";
 import { TranscriptEditor } from "@/components/transcript-editor";
 import { DiffView } from "@/components/diff-view";
@@ -72,12 +71,10 @@ export default function Home() {
           </svg>
         </button>
         <div className="bg-white rounded px-2 py-1">
-          <Image
+          <img
             src="/Shinko1_Kanji_Master_Wordmark_Black-Red.png"
             alt="Shinko1"
-            width={100}
-            height={26}
-            priority
+            className="h-7 w-auto"
           />
         </div>
         <span className="hidden sm:inline text-zinc-600 text-sm">transcribe · edit · summarize</span>
