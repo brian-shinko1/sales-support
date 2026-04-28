@@ -99,13 +99,47 @@ export async function callAiriaAt(apiKey: string, url: string, userInput: string
   const res = await fetch(url, {
     method: "POST",
     headers: { "X-API-KEY": apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ userInput, asyncOutput: false }),
+    body: JSON.stringify({ userInput, asyncOutput: true }),
   });
 
-  if (!res.ok) throw new Error(`Airia ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`Airia error ${res.status}:`, body.slice(0, 500));
+    throw new Error(`Airia ${res.status}`);
+  }
 
-  const data = await res.json();
-  return data.output ?? data.result ?? data.text ?? JSON.stringify(data);
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const data = line.slice(6).trim();
+      if (!data || data === "[DONE]") continue;
+
+      let msg: Record<string, unknown>;
+      try { msg = JSON.parse(data); } catch { continue; }
+
+      if (msg.type === "AgentEndMessage") {
+        const final = (msg.result ?? msg.output ?? msg.text) as string | undefined;
+        return final ?? result;
+      }
+      if (msg.type === "AgentModelStreamFragmentMessage") {
+        result += (msg.fragment ?? msg.content ?? msg.text ?? "") as string;
+      }
+    }
+  }
+
+  return result;
 }
 
 export async function callAiria(apiKey: string, userInput: string): Promise<string> {
