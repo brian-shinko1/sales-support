@@ -117,7 +117,8 @@ export async function callAiriaAt(apiKey: string, url: string, userInput: string
     const { done, value } = await reader.read();
     if (done) break;
 
-    buffer += decoder.decode(value, { stream: true });
+    const chunk = decoder.decode(value, { stream: true });
+    buffer += chunk;
     const lines = buffer.split("\n");
     buffer = lines.pop() ?? "";
 
@@ -129,12 +130,9 @@ export async function callAiriaAt(apiKey: string, url: string, userInput: string
       let msg: Record<string, unknown>;
       try { msg = JSON.parse(data); } catch { continue; }
 
-      if (msg.type === "AgentEndMessage") {
-        const final = (msg.result ?? msg.output ?? msg.text) as string | undefined;
-        return final ?? result;
-      }
-      if (msg.type === "AgentModelStreamFragmentMessage") {
-        result += (msg.fragment ?? msg.content ?? msg.text ?? "") as string;
+      if (msg.MessageType === "AgentEndMessage") return result;
+      if (msg.MessageType === "ModelStreamFragment") {
+        result += (msg.Content ?? "") as string;
       }
     }
   }
