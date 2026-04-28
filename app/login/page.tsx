@@ -1,17 +1,15 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-
 const ERROR_MESSAGES: Record<string, string> = {
   not_allowed: "Your account isn't on the allowed list.",
   token_exchange: "Google sign-in failed. Please try again.",
   no_code: "Sign-in was cancelled.",
 };
 
-function LoginContent() {
-  const params = useSearchParams();
-  const error = params.get("error");
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
 
   return (
     <div className="min-h-full flex items-center justify-center">
@@ -53,13 +51,5 @@ function LoginContent() {
         </a>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginContent />
-    </Suspense>
   );
 }
