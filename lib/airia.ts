@@ -147,62 +147,99 @@ export async function callAiria(apiKey: string, userInput: string): Promise<stri
 export function formatSummaryAsMarkdown(raw: string): string {
   let parsed: Record<string, unknown>;
   try {
-    // Strip markdown code fences if the model wraps the JSON
-    const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     parsed = JSON.parse(cleaned);
   } catch {
-    return raw; // Not JSON — return as-is
+    return raw;
   }
 
   const lines: string[] = [];
 
-  // Summary
   if (parsed.summary) {
     lines.push("## Summary", "", String(parsed.summary), "");
   }
 
-  // Participants
-  const participants = parsed.participants as { name: string; role: string }[] | undefined;
+  if (parsed.deal_temperature) {
+    lines.push(`**Deal Temperature:** ${parsed.deal_temperature}`, "");
+  }
+
+  const participants = parsed.participants as { name: string; role: string; company_side?: string }[] | undefined;
   if (participants?.length) {
     lines.push("## Participants", "");
-    lines.push("| Name | Role |", "|------|------|");
-    participants.forEach((p) => lines.push(`| ${p.name} | ${p.role || "—"} |`));
+    lines.push("| Name | Role | Side |", "|------|------|------|");
+    participants.forEach((p) => lines.push(`| ${p.name} | ${p.role || "—"} | ${p.company_side || "—"} |`));
     lines.push("");
   }
 
-  // What went well
-  const wentWell = parsed.what_went_well as string[] | undefined;
-  if (wentWell?.length) {
-    lines.push("## What Went Well", "");
-    wentWell.forEach((item) => lines.push(`- ${item}`));
+  const profile = parsed.customer_profile as { company_context?: string; team_structure?: string } | undefined;
+  if (profile?.company_context || profile?.team_structure) {
+    lines.push("## Customer Profile", "");
+    if (profile.company_context) lines.push(profile.company_context, "");
+    if (profile.team_structure) lines.push("**Team:** " + profile.team_structure, "");
+  }
+
+  const discovery = parsed.discovery_answers as { topic: string; customer_answer: string; identified_gap?: string; gap_strength?: string }[] | undefined;
+  if (discovery?.length) {
+    lines.push("## Discovery", "");
+    discovery.forEach((d) => {
+      lines.push(`### ${d.topic}`, "");
+      lines.push(d.customer_answer, "");
+      if (d.identified_gap) lines.push(`**Gap:** ${d.identified_gap}`, "");
+      if (d.gap_strength) lines.push(`**Gap Strength:** ${d.gap_strength}`, "");
+    });
+  }
+
+  const working = parsed.whats_working as string[] | undefined;
+  if (working?.length) {
+    lines.push("## What's Working", "");
+    working.forEach((item) => lines.push(`- ${item}`));
     lines.push("");
   }
 
-  // What needs work
-  const needsWork = parsed.what_needs_work as string[] | undefined;
-  if (needsWork?.length) {
-    lines.push("## What Needs Work", "");
-    needsWork.forEach((item) => lines.push(`- ${item}`));
+  const notWorking = parsed.whats_not_working as string[] | undefined;
+  if (notWorking?.length) {
+    lines.push("## What's Not Working", "");
+    notWorking.forEach((item) => lines.push(`- ${item}`));
     lines.push("");
   }
 
-  // What is not needed
-  const notNeeded = parsed.what_is_not_needed as string[] | undefined;
-  if (notNeeded?.length) {
-    lines.push("## What Is Not Needed", "");
-    notNeeded.forEach((item) => lines.push(`- ${item}`));
+  const buyingSignals = parsed.buying_signals as { signal: string; type: string; strength: string }[] | undefined;
+  if (buyingSignals?.length) {
+    lines.push("## Buying Signals", "");
+    buyingSignals.forEach((b) => lines.push(`- **[${b.type} — ${b.strength}]** ${b.signal}`));
     lines.push("");
   }
 
-  // Existing solutions
-  const solutions = parsed.existing_solutions_to_use as { solution: string; context: string }[] | undefined;
-  if (solutions?.length) {
-    lines.push("## Existing Solutions to Use", "");
-    solutions.forEach((s) => lines.push(`- **${s.solution}**: ${s.context}`));
+  const objections = parsed.objections_and_concerns as string[] | undefined;
+  if (objections?.length) {
+    lines.push("## Objections & Concerns", "");
+    objections.forEach((item) => lines.push(`- ${item}`));
     lines.push("");
   }
 
-  // Next steps
+  const questions = parsed.anticipated_customer_questions as { question: string; why_likely?: string; suggested_angle?: string }[] | undefined;
+  if (questions?.length) {
+    lines.push("## Anticipated Customer Questions", "");
+    questions.forEach((q) => {
+      lines.push(`**Q: ${q.question}**`, "");
+      if (q.suggested_angle) lines.push(`*Angle:* ${q.suggested_angle}`, "");
+    });
+  }
+
+  const competitors = parsed.competitors_and_incumbents_mentioned as { name: string; context: string; sentiment?: string }[] | undefined;
+  if (competitors?.length) {
+    lines.push("## Competitors Mentioned", "");
+    competitors.forEach((c) => lines.push(`- **${c.name}:** ${c.context}`));
+    lines.push("");
+  }
+
+  const followUps = parsed.follow_up_questions_to_ask as string[] | undefined;
+  if (followUps?.length) {
+    lines.push("## Follow-up Questions to Ask", "");
+    followUps.forEach((q) => lines.push(`- ${q}`));
+    lines.push("");
+  }
+
   const nextSteps = parsed.next_steps as { action: string; owner: string; due: string }[] | undefined;
   if (nextSteps?.length) {
     lines.push("## Next Steps", "");
@@ -211,7 +248,31 @@ export function formatSummaryAsMarkdown(raw: string): string {
     lines.push("");
   }
 
-  // Condensed transcript
+  const roadmap = parsed.roadmap_and_priorities as { six_months?: string[]; twelve_months?: string[]; eighteen_months_plus?: string[]; growth_signals?: string[] } | undefined;
+  if (roadmap) {
+    lines.push("## Roadmap & Priorities", "");
+    if (roadmap.six_months?.length) {
+      lines.push("**6 Months**", "");
+      roadmap.six_months.forEach((item) => lines.push(`- ${item}`));
+      lines.push("");
+    }
+    if (roadmap.twelve_months?.length) {
+      lines.push("**12 Months**", "");
+      roadmap.twelve_months.forEach((item) => lines.push(`- ${item}`));
+      lines.push("");
+    }
+    if (roadmap.eighteen_months_plus?.length) {
+      lines.push("**18+ Months**", "");
+      roadmap.eighteen_months_plus.forEach((item) => lines.push(`- ${item}`));
+      lines.push("");
+    }
+    if (roadmap.growth_signals?.length) {
+      lines.push("**Growth Signals**", "");
+      roadmap.growth_signals.forEach((item) => lines.push(`- ${item}`));
+      lines.push("");
+    }
+  }
+
   if (parsed.transcript_condensed) {
     lines.push("## Condensed Transcript", "", String(parsed.transcript_condensed), "");
   }
