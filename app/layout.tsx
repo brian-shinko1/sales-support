@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Sales Support",
   description: "Transcribe, edit, and summarize with AI",
+  icons: { icon: "/Shinko1_Hands_Icon_Red.ico" },
 };
 
 export default function RootLayout({
