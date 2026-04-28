@@ -22,6 +22,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("transcript");
   const [frozen, setFrozen] = useState<FrozenContext>({ company: "", team: [] });
   const [meeting, setMeeting] = useState<MeetingContext>({ customerCompany: "", vendorName: "", purpose: "", customerTeam: [], vendorTeam: [] });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { requestToken } = useGoogleAuth();
 
   const dateSlug = new Date().toISOString().slice(0, 10);
@@ -59,16 +60,45 @@ export default function Home() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-3 flex items-center gap-3">
+      <header className="border-b border-zinc-800 px-4 py-3 flex items-center gap-3">
+        <button
+          className="md:hidden p-1 text-zinc-400 hover:text-zinc-200 transition-colors"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open menu"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
         <span className="text-lg font-semibold tracking-tight">Sales Support</span>
-        <span className="text-zinc-600 text-sm">transcribe · edit · summarize</span>
+        <span className="hidden sm:inline text-zinc-600 text-sm">transcribe · edit · summarize</span>
         <a href="/api/auth/logout" className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Sign out</a>
       </header>
 
       {/* Main layout */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Mobile backdrop */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/60 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         {/* Left sidebar */}
-        <aside className="w-64 border-r border-zinc-800 p-4 flex flex-col gap-6 overflow-y-auto shrink-0">
+        <aside className={cn(
+          "fixed inset-y-0 left-0 z-50 w-72 bg-zinc-950 border-r border-zinc-800 p-4 flex flex-col gap-6 overflow-y-auto transition-transform duration-200",
+          "md:relative md:translate-x-0 md:w-64 md:z-auto md:bg-transparent",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}>
+          <div className="flex items-center justify-between md:hidden">
+            <span className="text-sm font-semibold text-zinc-400">Menu</span>
+            <button onClick={() => setSidebarOpen(false)} className="text-zinc-500 hover:text-zinc-300">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           <ContextPanel
             frozen={frozen}
             meeting={meeting}
@@ -98,15 +128,15 @@ export default function Home() {
         </aside>
 
         {/* Center content */}
-        <main className="flex-1 flex flex-col overflow-hidden p-4 gap-3">
-          <div className="flex items-center justify-between">
+        <main className="flex-1 flex flex-col overflow-hidden p-3 md:p-4 gap-3 min-w-0">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex gap-1">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
+                    "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                     activeTab === tab.id
                       ? "bg-zinc-700 text-zinc-100"
                       : "text-zinc-500 hover:text-zinc-300"
