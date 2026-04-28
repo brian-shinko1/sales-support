@@ -7,7 +7,7 @@ export const AIRIA_EDIT_URL =
   "https://prodaus.api.airia.ai/v2/PipelineExecution/9bf12c82-e135-47a1-99ae-06c7a6c4e506";
 
 export const AIRIA_SUMMARISE_URL =
-  "https://prodaus.api.airia.ai/v2/PipelineExecution/f8542ab1-cb91-45f8-8053-1b65df3edb7e";
+  "https://prodaus.api.airia.ai/v2/PipelineExecution/79c508cb-b41d-43c0-991c-2a4bf55eb829";
 
 export function buildDiarizeInput(
   rawTranscript: string,
