@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 const ERROR_MESSAGES: Record<string, string> = {
   not_allowed: "Your account isn't on the allowed list.",
   token_exchange: "Google sign-in failed. Please try again.",
