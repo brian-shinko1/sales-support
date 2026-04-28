@@ -71,14 +71,15 @@ export default function Home() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <Image
-          src="/Shinko1_Kanji_Master_Wordmark_Black-Red.png"
-          alt="Shinko1"
-          width={120}
-          height={32}
-          className="invert"
-          priority
-        />
+        <div className="bg-white rounded px-2 py-1">
+          <Image
+            src="/Shinko1_Kanji_Master_Wordmark_Black-Red.png"
+            alt="Shinko1"
+            width={100}
+            height={26}
+            priority
+          />
+        </div>
         <span className="hidden sm:inline text-zinc-600 text-sm">transcribe · edit · summarize</span>
         <a href="/api/auth/logout" className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Sign out</a>
       </header>
