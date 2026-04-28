@@ -2,15 +2,64 @@
 
 import { useState } from "react";
 import { Save, ExternalLink, Loader2 } from "lucide-react";
-import { useGoogleAuth } from "@/hooks/use-google-auth";
 
 interface Props {
-  transcript: string;
-  summary: string;
+  content: string;
+  filename: string;
+  label?: string;
+  requestToken: () => Promise<string>;
+  disabled?: boolean;
 }
 
-export function DriveSaveButton({ transcript, summary }: Props) {
-  const { requestToken } = useGoogleAuth();
+function mdToHtml(md: string): string {
+  const lines = md.split("\n");
+  const html: string[] = [];
+  let inUl = false;
+  let inOl = false;
+
+  const closeList = () => {
+    if (inUl) { html.push("</ul>"); inUl = false; }
+    if (inOl) { html.push("</ol>"); inOl = false; }
+  };
+
+  const inline = (s: string) =>
+    s
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/`(.+?)`/g, "<code>$1</code>");
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const h3 = line.match(/^### (.+)/);
+    const h2 = line.match(/^## (.+)/);
+    const h1 = line.match(/^# (.+)/);
+    const ul = line.match(/^[-*] (.+)/);
+    const ol = line.match(/^\d+\. (.+)/);
+
+    if (h1) { closeList(); html.push(`<h1>${inline(h1[1])}</h1>`); }
+    else if (h2) { closeList(); html.push(`<h2>${inline(h2[1])}</h2>`); }
+    else if (h3) { closeList(); html.push(`<h3>${inline(h3[1])}</h3>`); }
+    else if (ul) {
+      if (inOl) { html.push("</ol>"); inOl = false; }
+      if (!inUl) { html.push("<ul>"); inUl = true; }
+      html.push(`<li>${inline(ul[1])}</li>`);
+    } else if (ol) {
+      if (inUl) { html.push("</ul>"); inUl = false; }
+      if (!inOl) { html.push("<ol>"); inOl = true; }
+      html.push(`<li>${inline(ol[1])}</li>`);
+    } else if (line.match(/^---+$/)) {
+      closeList(); html.push("<hr>");
+    } else if (line === "") {
+      closeList();
+    } else {
+      closeList(); html.push(`<p>${inline(line)}</p>`);
+    }
+  }
+  closeList();
+  return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:800px;margin:40px auto;line-height:1.6">${html.join("")}</body></html>`;
+}
+
+export function DriveSaveButton({ content, filename, label = "Save to Drive", requestToken, disabled }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,12 +67,10 @@ export function DriveSaveButton({ transcript, summary }: Props) {
   const save = async () => {
     setIsSaving(true);
     setError(null);
+    setSavedUrl(null);
     try {
       const token = await requestToken();
-      const content = summary
-        ? `# Summary\n\n${summary}\n\n---\n\n# Transcript\n\n${transcript}`
-        : transcript;
-      const filename = `transcript-${new Date().toISOString().slice(0, 10)}.md`;
+      const pdfFilename = filename.replace(/\.[^.]+$/, "") + ".pdf";
 
       const res = await fetch("/api/drive", {
         method: "POST",
@@ -31,7 +78,7 @@ export function DriveSaveButton({ transcript, summary }: Props) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ filename, content, mimeType: "text/plain" }),
+        body: JSON.stringify({ filename: pdfFilename, content: mdToHtml(content), mimeType: "application/pdf" }),
       });
 
       const data = await res.json();
@@ -48,14 +95,14 @@ export function DriveSaveButton({ transcript, summary }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2">
       <button
         onClick={save}
-        disabled={isSaving || (!transcript && !summary)}
-        className="flex items-center justify-center gap-2 rounded-lg py-2 px-4 text-sm font-medium bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-zinc-300"
+        disabled={isSaving || disabled || !content}
+        className="flex items-center gap-1.5 rounded-md py-1 px-3 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-zinc-300"
       >
-        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-        {isSaving ? "Saving…" : "Save to Google Drive"}
+        {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+        {isSaving ? "Saving…" : label}
       </button>
 
       {savedUrl && (
@@ -63,9 +110,9 @@ export function DriveSaveButton({ transcript, summary }: Props) {
           href={savedUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300"
+          className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300"
         >
-          <ExternalLink className="w-3 h-3" /> Saved — open in Drive
+          <ExternalLink className="w-3 h-3" /> Saved
         </a>
       )}
       {error && <p className="text-xs text-red-400">{error}</p>}
