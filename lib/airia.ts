@@ -147,7 +147,9 @@ export async function callAiria(apiKey: string, userInput: string): Promise<stri
 export function formatSummaryAsMarkdown(raw: string): string {
   let parsed: Record<string, unknown>;
   try {
-    const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    // Extract JSON — handle code fences, surrounding whitespace, and bare JSON
+    const match = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    const cleaned = match ? match[1] : raw.trim();
     parsed = JSON.parse(cleaned);
   } catch {
     return raw;
