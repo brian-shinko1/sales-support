@@ -1,20 +1,20 @@
 export const runtime = 'edge';
 
 import { NextRequest } from "next/server";
-import { callAiria } from "@/lib/airia";
+import { AIRIA_SUMMARISE_URL, buildUserInput, callAiriaAt } from "@/lib/airia";
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.AIRIA_API_KEY;
   if (!apiKey) return new Response("AIRIA_API_KEY not set", { status: 500 });
 
-  const { transcript, prompt } = await req.json();
-  if (!transcript || !prompt) return new Response("Missing transcript or prompt", { status: 400 });
+  const { transcript, frozen, meeting } = await req.json();
+  if (!transcript) return new Response("Missing transcript", { status: 400 });
 
-  const userInput = `${prompt}\n\n${transcript}`;
+  const userInput = buildUserInput("", transcript, frozen, meeting);
 
   let text: string;
   try {
-    text = await callAiria(apiKey, userInput);
+    text = await callAiriaAt(apiKey, AIRIA_SUMMARISE_URL, userInput);
   } catch (e) {
     return new Response(String(e), { status: 502 });
   }

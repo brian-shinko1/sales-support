@@ -16,7 +16,7 @@ export default function RootLayout({
       <head>
         <script src="https://accounts.google.com/gsi/client" async></script>
       </head>
-      <body className="h-full bg-[#0a0a0a] text-[#ededed] antialiased">
+      <body className="h-full bg-[#0a0a0a] text-[#ededed] antialiased" suppressHydrationWarning>
         {children}
       </body>
     </html>

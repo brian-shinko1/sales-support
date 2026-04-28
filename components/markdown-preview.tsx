@@ -1,6 +1,7 @@
 "use client";
 
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Props {
   content: string;
@@ -12,7 +13,7 @@ export function MarkdownPreview({ content }: Props) {
   }
   return (
     <div className="prose prose-invert prose-sm max-w-none prose-p:text-zinc-300 prose-headings:text-zinc-100 prose-code:text-violet-300 prose-pre:bg-zinc-800 prose-blockquote:border-violet-500 prose-blockquote:text-zinc-400">
-      <ReactMarkdown>{content}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   );
 }
